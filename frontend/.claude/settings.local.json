@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(frontend-design)",
+      "Bash(pnpm build:*)",
+      "Bash(npx tsc:*)",
+      "WebFetch(domain:railway.com)",
+      "Bash(npm run build:*)"
+    ]
+  }
+}

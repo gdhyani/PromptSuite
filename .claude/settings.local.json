@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(frontend-design:frontend-design)",
+      "Bash(pnpm install)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm --filter frontend build:*)",
+      "Skill(frontend-design)",
+      "Bash(pnpm add:*)",
+      "Bash(npm run build:*)",
+      "Bash(timeout 10 pnpm dev:*)",
+      "Bash(timeout:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}

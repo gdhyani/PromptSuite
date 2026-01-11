@@ -1,0 +1,43 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a855f7"/>
+      <stop offset="50%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f472b6"/>
+      <stop offset="100%" style="stop-color:#06b6d4"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="512" height="512" rx="108" fill="url(#bgGradient)"/>
+
+  <!-- Subtle inner glow -->
+  <rect x="24" y="24" width="464" height="464" rx="84" fill="none" stroke="white" stroke-opacity="0.1" stroke-width="2"/>
+
+  <!-- Main "P" letterform with prompt bracket styling -->
+  <g filter="url(#glow)">
+    <!-- Left bracket -->
+    <path d="M120 140 L160 140 L160 160 L140 160 L140 352 L160 352 L160 372 L120 372 L120 140Z" fill="white"/>
+
+    <!-- P shape -->
+    <path d="M180 140 L320 140 C370 140 410 180 410 230 C410 280 370 320 320 320 L220 320 L220 372 L180 372 L180 140Z M220 180 L220 280 L310 280 C340 280 365 255 365 230 C365 205 340 180 310 180 L220 180Z" fill="white"/>
+
+    <!-- Right bracket -->
+    <path d="M392 140 L352 140 L352 160 L372 160 L372 352 L352 352 L352 372 L392 372 L392 140Z" fill="white"/>
+  </g>
+
+  <!-- Decorative dots representing prompts/code -->
+  <circle cx="280" cy="410" r="10" fill="url(#accentGradient)" opacity="0.9"/>
+  <circle cx="320" cy="410" r="10" fill="white" opacity="0.6"/>
+  <circle cx="360" cy="410" r="10" fill="white" opacity="0.4"/>
+</svg>
