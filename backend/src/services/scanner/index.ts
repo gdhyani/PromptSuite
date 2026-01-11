@@ -4,7 +4,7 @@ import { User } from "../../models/User.js";
 import { logger } from "../../lib/logger.js";
 import { NotFoundError, ForbiddenError } from "../../lib/errors.js";
 import { githubService } from "../github/client.js";
-import { detectOpenAIPrompts } from "../detector/openaiParser.js";
+import { detectPromptsInFile, isFileSupported, getSupportedExtensions } from "../detector/index.js";
 
 export const scannerService = {
   async scanProject(projectId: string, userId: string): Promise<void> {
@@ -28,6 +28,7 @@ export const scannerService = {
     await DetectedPrompt.deleteMany({ projectId });
 
     let commitSha: string | null = null;
+    const supportedExtensions = getSupportedExtensions();
 
     if (project.type === "github" && project.githubUrl) {
       // Get the latest commit SHA for tracking
@@ -47,39 +48,75 @@ export const scannerService = {
 
       logger.info("Files fetched from GitHub", { count: files.length, projectId });
 
-      // Process each TypeScript/JavaScript file
-      for (const file of files) {
-        if (file.path.match(/\.(ts|tsx|js|jsx)$/) && !file.path.includes("node_modules")) {
-          try {
-            const content = await githubService.getFileContent(
-              project.githubUrl,
-              file.path,
-              project.branch,
-              user.accessToken
-            );
+      // Filter to supported files, exclude node_modules
+      const supportedFiles = files.filter(file => {
+        if (file.path.includes("node_modules")) return false;
+        if (file.path.includes("dist/")) return false;
+        if (file.path.includes(".next/")) return false;
+        if (file.path.includes("__pycache__")) return false;
+        return isFileSupported(file.path);
+      });
 
-            const prompts = detectOpenAIPrompts(content, file.path);
+      logger.info("Supported files to scan", { count: supportedFiles.length, projectId });
 
-            for (const prompt of prompts) {
-              await DetectedPrompt.create({
-                projectId,
-                filePath: prompt.filePath,
-                lineNumber: prompt.lineNumber,
-                columnNumber: prompt.columnNumber,
-                promptType: prompt.promptType,
-                originalContent: prompt.originalContent,
-                extractedConfig: prompt.extractedConfig,
-                messages: prompt.messages,
-                variables: prompt.variables,
-              });
-            }
+      // Process each file
+      for (const file of supportedFiles) {
+        try {
+          const content = await githubService.getFileContent(
+            project.githubUrl,
+            file.path,
+            project.branch,
+            user.accessToken
+          );
 
-            if (prompts.length > 0) {
-              logger.debug("Prompts detected", { file: file.path, count: prompts.length });
-            }
-          } catch (error) {
-            logger.warn("Failed to process file", { file: file.path, error });
+          // Use the new async detector
+          const result = await detectPromptsInFile(content, file.path, {
+            resolveVariables: true,
+            providers: ["openai", "anthropic", "google", "azure"],
+          });
+
+          // Log any errors
+          for (const error of result.errors) {
+            logger.warn("Detection error", { file: file.path, error: error.message });
           }
+
+          // Save detected prompts
+          for (const prompt of result.prompts) {
+            await DetectedPrompt.create({
+              projectId,
+              filePath: prompt.filePath,
+              lineNumber: prompt.lineNumber,
+              columnNumber: prompt.columnNumber,
+              endLineNumber: prompt.endLineNumber,
+              endColumnNumber: prompt.endColumnNumber,
+              promptType: prompt.promptType,
+              provider: prompt.provider,
+              sdkMethod: prompt.sdkMethod,
+              originalContent: prompt.originalContent,
+              extractedConfig: {
+                model: prompt.extractedConfig.model,
+                temperature: prompt.extractedConfig.temperature,
+                maxTokens: prompt.extractedConfig.maxTokens,
+                topP: prompt.extractedConfig.topP,
+                stream: prompt.extractedConfig.stream,
+                tools: prompt.extractedConfig.tools,
+                responseFormat: prompt.extractedConfig.responseFormat,
+              },
+              messages: prompt.messages,
+              variables: prompt.variables,
+              confidence: prompt.confidence,
+            });
+          }
+
+          if (result.prompts.length > 0) {
+            logger.debug("Prompts detected", {
+              file: file.path,
+              count: result.prompts.length,
+              providers: [...new Set(result.prompts.map(p => p.provider))],
+            });
+          }
+        } catch (error) {
+          logger.warn("Failed to process file", { file: file.path, error });
         }
       }
     }
